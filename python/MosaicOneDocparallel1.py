@@ -37,7 +37,7 @@ def GetData(in_filename):
 if __name__ == '__main__':
     star=time.time()
 
-    path=r"/data/appdata/lai_param_TwoCycle_mask/2001"
+    path=r"/data/appdata/lai_param_TwoCycle_mask/2002"
     os.chdir(path)
     #如果存在同名影像则先删除
     # if os.path.exists('LaiParamOneCycle_2018.tif'):
@@ -73,7 +73,7 @@ if __name__ == '__main__':
     pool.shutdown(wait=True)
 
     # name="/data/appdata/lai_param_TwoCycle_mask/merge/LaiParamTwoCycle_2000.tif"
-    name="/data/appdata/lai_param_TwoCycle_mask/merge/LaiParamTwoCycle_2001.tif"
+    name="/data/appdata/lai_param_TwoCycle_mask/merge/LaiParamTwoCycle_2002.tif"
     out_ds=gdal.GetDriverByName('GTiff').Create(name,columns,rows,in_band,band_type.DataType)
     out_ds.SetProjection(in_ds.GetProjection())
     geotrans[0]=min_x

@@ -256,7 +256,7 @@ bool PSN::PSNGPU(std::deque<InformStruct *> *OutLaiInputDeque,
                          d_Photosynthesis_A, d_Photosynthesis_GS, d_Photosynthesis_Rd);
 
         ////////////////////output
-        err = cudaMemcpy(result, d_A_total_C3, size, cudaMemcpyDeviceToHost);
+        err = cudaMemcpy(result, d_Rad, size, cudaMemcpyDeviceToHost);
 
         Output->push_back(result);
 

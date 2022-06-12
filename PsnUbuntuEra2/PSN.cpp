@@ -14,9 +14,9 @@ void PSN::Init(std::deque<InformStruct *> *OutLaiInputDeque)
 
     double *d_Lon = NULL;
     double *d_Lat = NULL;
-    double *d_Pressure = NULL;
     double *d_Rad = NULL;
-    double *d_SH = NULL;
+    double* d_Rad_last = NULL;
+    double *d_dewpoint = NULL;
     double *d_Temp = NULL;
     double *d_ClumpIndex = NULL;
     double *d_PercentC4 = NULL;
@@ -93,9 +93,9 @@ void PSN::Inneed()
     err = cudaMalloc((void **)&d_ClumpIndex, size);
     err = cudaMalloc((void **)&d_PercentC4, size);
 
-    err = cudaMalloc((void **)&d_Pressure, size);
     err = cudaMalloc((void **)&d_Rad, size);
-    err = cudaMalloc((void **)&d_SH, size);
+    err = cudaMalloc((void **)&d_Rad_last, size);
+    err = cudaMalloc((void **)&d_dewpoint, size);
     err = cudaMalloc((void **)&d_Temp, size);
 
     err = cudaMalloc((void **)&d_tiemsers, sizeof(double));
@@ -192,25 +192,24 @@ bool PSN::PSNGPU(std::deque<InformStruct *> *OutLaiInputDeque,
     err = cudaMemcpy(d_ClumpIndex, ClumpIndexInputDeque->back(), size, cudaMemcpyHostToDevice);
     err = cudaMemcpy(d_PercentC4, PercentC4InputDeque->back(), size, cudaMemcpyHostToDevice);
 
-    // double *result = (double *)malloc(size);
-    // err = cudaMemcpy(result, d_p0, size, cudaMemcpyDeviceToHost);
+    double* h_Rad_last=(double*)malloc(size);
+    memset(h_Rad_last, 0, size);
+    err = cudaMemcpy(d_Rad_last, h_Rad_last, size, cudaMemcpyHostToDevice);
 
-    // Output->push_back(result);
-
-    for (int i = 0; i < VarInfoMapInputDeque.find("Psurf_f_inst")->second->size(); i++)
+    for (int i = 0; i < VarInfoMapInputDeque.find("t2m")->second->at(0)->Data.size(); i++)
     {
         double *result = (double *)malloc(size);
 
-        h_Pressure = (double *)(VarInfoMapInputDeque.find("Psurf_f_inst")->second->at(i)->Data.front());
-        h_Rad = (double *)(VarInfoMapInputDeque.find("SWdown_f_tavg")->second->at(i)->Data.front());
-        h_SH = (double *)(VarInfoMapInputDeque.find("Qair_f_inst")->second->at(i)->Data.front());
-        h_Temp = (double *)(VarInfoMapInputDeque.find("Tair_f_inst")->second->at(i)->Data.front());
+        // h_Pressure = (double *)(VarInfoMapInputDeque.find("Psurf_f_inst")->second->at(i)->Data.front());
+        h_Rad = (double*)(VarInfoMapInputDeque.find("ssrd")->second->at(0)->Data.at(i));
+        h_dewpoint = (double*)(VarInfoMapInputDeque.find("d2m")->second->at(0)->Data.at(i));
+        h_Temp = (double*)(VarInfoMapInputDeque.find("t2m")->second->at(0)->Data.at(i));
         h_tiemsers = SpatiotemporalDeque->back()->timeSeries[i % SpatiotemporalDeque->back()->TimeSize];
         h_doy = ceil(i / SpatiotemporalDeque->back()->TimeSize) + 1.0;
 
-        err = cudaMemcpy(d_Pressure, h_Pressure, size, cudaMemcpyHostToDevice);
+        // err = cudaMemcpy(d_Pressure, h_Pressure, size, cudaMemcpyHostToDevice);
         err = cudaMemcpy(d_Rad, h_Rad, size, cudaMemcpyHostToDevice);
-        err = cudaMemcpy(d_SH, h_SH, size, cudaMemcpyHostToDevice);
+        err = cudaMemcpy(d_dewpoint, h_dewpoint, size, cudaMemcpyHostToDevice);
         err = cudaMemcpy(d_Temp, h_Temp, size, cudaMemcpyHostToDevice);
         err = cudaMemcpy(d_tiemsers, &h_tiemsers, sizeof(double), cudaMemcpyHostToDevice);
         err = cudaMemcpy(d_doy, &h_doy, sizeof(double), cudaMemcpyHostToDevice);
@@ -219,13 +218,13 @@ bool PSN::PSNGPU(std::deque<InformStruct *> *OutLaiInputDeque,
 
         inputLai_C(blocksPerGrid, threadsPerBlock, d_p0, d_p1, d_p2, d_p3, d_p4, d_p5, d_doy, d_Lai);
 
-        inputData_C(blocksPerGrid, threadsPerBlock, d_Lon, d_Lat, d_Temp, d_Rad, d_SH, d_Pressure,
+        inputData_C(blocksPerGrid, threadsPerBlock, d_Lon, d_Lat, d_Temp, d_Rad, d_dewpoint,
                     d_Lai, d_VPD, d_RH, d_Vcmax, d_Jmax);
         SZA_kb_calculation_C(blocksPerGrid, threadsPerBlock, d_Lat, d_Lon, d_doy, d_tiemsers, d_miukb, d_G, d_kb);
 
         rad_transfer_C(blocksPerGrid, threadsPerBlock, d_Lai, d_kb, d_G, d_taob, d_betab, d_taod, d_betad);
 
-        rad_partition_C(blocksPerGrid, threadsPerBlock, d_Rad, d_miukb, d_Rad_direct, d_Rad_diffuse);
+        rad_partition_C(blocksPerGrid, threadsPerBlock, d_Rad, d_miukb, d_Rad_last, d_Rad_direct, d_Rad_diffuse);
 
         twoleaf_C(blocksPerGrid, threadsPerBlock, d_Lai, d_Rad_direct, d_Rad_diffuse, d_taob, d_betab, d_taod, d_betad, d_kb, d_ClumpIndex,
                   d_LAI_sun, d_LAI_shade, d_PPFD_sun, d_PPFD_shade);
@@ -279,8 +278,9 @@ void PSN::Release()
     err = cudaFree(d_Lat);
     err = cudaFree(d_Temp);
     err = cudaFree(d_Rad);
-    err = cudaFree(d_SH);
-    err = cudaFree(d_Pressure);
+    err = cudaFree(d_Rad_last);
+    err = cudaFree(d_dewpoint);
+
     err = cudaFree(d_ClumpIndex);
     err = cudaFree(d_PercentC4);
 

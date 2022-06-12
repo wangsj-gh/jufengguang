@@ -18,14 +18,12 @@ public:
     void Inneed();
     void GetDayDataGPU(std::map<std::string, std::deque<VarInfo *> *> TleafDeque,
                        std::deque<double *> *Output);
-    void GetDayDataGPU(std::deque<double *> *DataDeque,
-                       std::deque<double *> *Output);
-    void GetYearDataGPU(std::deque<double *> *DataDeque,
-                        std::deque<double *> *Output);
+    void GetDayDataGPU(std::deque<double *> *DataDeque,std::deque<double *> *Output);
     void GetDayDataGPU(std::deque<double *> *GppDeque,
                        std::deque<InformStruct *> *OutLaiInputDeque,
                        std::deque<SpatiotemporalStruct *> *SpatiotemporalDeque,
                        std::deque<double *> *Output);
+    void GetYearDataGPU(std::deque<double *> *DataDeque,std::deque<double *> *Output);
     void Release();
 
 private:

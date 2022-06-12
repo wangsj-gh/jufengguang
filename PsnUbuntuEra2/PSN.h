@@ -6,7 +6,7 @@ extern "C" void inputLai_C(int blocksPerGrid, int threadsPerBlock, const double 
                            const double *p3, const double *p4, const double *p5, const double *t, double *LaiData);
 
 extern "C" void inputData_C(int blocksPerGrid, int threadsPerBlock, const double *Lon, const double *Lat, const double *Temp,
-                            const double *Rad, const double *SH, const double *Pressure, const double *LAI,
+                            const double *Rad, const double *dewpoint, const double *LAI,
                             double *VPD, double *RH, double *Vcmax, double *Jmax);
 
 extern "C" void SZA_kb_calculation_C(int blocksPerGrid, int threadsPerBlock, const double *Lat, const double *Lon, const double *doy, const double *timeSeries,
@@ -15,7 +15,7 @@ extern "C" void SZA_kb_calculation_C(int blocksPerGrid, int threadsPerBlock, con
 extern "C" void rad_transfer_C(int blocksPerGrid, int threadsPerBlock, const double *LAI, const double *kb, const double *G,
                                double *taob, double *betab, double *taod, double *betad);
 
-extern "C" void rad_partition_C(int blocksPerGrid, int threadsPerBlock, const double *Rad, const double *miukb,
+extern "C" void rad_partition_C(int blocksPerGrid, int threadsPerBlock, const double *Rad, const double *miukb,double *Rad_last,
                                 double *Rad_direct, double *Rad_diffuse);
 
 extern "C" void twoleaf_C(int blocksPerGrid, int threadsPerBlock, const double *LAI, const double *Rad_direct, const double *Rad_diffuse,
@@ -64,9 +64,9 @@ private:
     std::deque<double *> *PercentC4InputDeque;
     std::map<std::string, std::deque<VarInfo *> *> VarInfoMapInputDeque;
 
-    double *h_Pressure;
+    // double *h_Pressure;
     double *h_Rad;
-    double *h_SH;
+    double *h_dewpoint;
     double *h_Temp;
 
     double h_tiemsers;
@@ -85,9 +85,10 @@ private:
     double *d_ClumpIndex;
     double *d_PercentC4;
 
-    double *d_Pressure;
+    // double *d_Pressure;
     double *d_Rad;
-    double *d_SH;
+    double *d_Rad_last;
+    double *d_dewpoint;
     double *d_Temp;
 
     double *d_tiemsers;

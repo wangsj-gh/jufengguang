@@ -64,16 +64,16 @@ void GetDayData::GetDayDataGPU(std::map<std::string, std::deque<VarInfo *> *> Tl
     int blocksPerGrid = (numElements + threadsPerBlock - 1) / threadsPerBlock;
     err = cudaMemcpy(d_DaySize, &h_DaySize, size, cudaMemcpyHostToDevice);
 
-    for (int i = 0; i < TleafDeque.find("Tair_f_inst")->second->size(); i += h_DaySize)
+    for (int i = 0; i < TleafDeque.find("t2m")->second->size(); i += h_DaySize)
     {
         double *DayMean = (double *)malloc(size);
 
-        double *h_DaySum = (double *)(TleafDeque.find("Tair_f_inst")->second->at(i)->Data.front());
+        double *h_DaySum = (double *)(TleafDeque.find("t2m")->second->at(i)->Data.front());
         err = cudaMemcpy(d_sum, h_DaySum, size, cudaMemcpyHostToDevice);
 
         for (int j = i + 1; j < i + h_DaySize; j++)
         {
-            double *h_Day3 = (double *)(TleafDeque.find("Tair_f_inst")->second->at(j)->Data.front());
+            double *h_Day3 = (double *)(TleafDeque.find("t2m")->second->at(j)->Data.front());
             err = cudaMemcpy(d_Gpp, h_Day3, size, cudaMemcpyHostToDevice);
             accum_C(blocksPerGrid, threadsPerBlock, d_Gpp, d_sum);
         }

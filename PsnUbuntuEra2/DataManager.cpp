@@ -53,13 +53,12 @@ void DataManager::SetDataQueue(std::deque<VarInfo *> *p_VarInfoQueue)
 
 std::map<std::string, std::deque<VarInfo *> *> DataManager::GetDataMap()
 {
-
 	return this->VarInfoMap;
 }
 
 void DataManager::CollectFilesPath() // vector，多个文件夹
 {
-	p_FilesScan->ScanFiles("/data/users/wangsj/dataGdals/lai2007");
+	p_FilesScan->ScanFiles("/data/users/wangsj/dataEra/dataset");
 
 	FilesPath = p_FilesScan->GetFiles();
 }
@@ -101,7 +100,7 @@ void DataManager::ReadData(std::string filepath)
 	// p_NetCDF_Read->ReadTemp();
 	p_NetCDF_Read->ReadGeoCoordinates();
 	// p_NetCDF_Read->ReadData("t2m");
-	p_NetCDF_Read->ReadCollectedData(0);
+	p_NetCDF_Read->ReadCollectedData(500);
 
 	//数据输出
 	p_NetCDF_Read->TransData(p_DataQueue);

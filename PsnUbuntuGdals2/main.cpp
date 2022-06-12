@@ -74,6 +74,11 @@ int main(void)
 
     std::cout << "end PSN" << std::endl;
 
+    const char *file1 = "../../dataGdals/Rad2007gdals";
+    DataSet_Write *DatasetC3 = new DataSet_Write();
+    DatasetC3->ResultToTif(file1, OutLaiInputDeque, GppDeque3h);
+
+
     clock_t end2 = clock();
     std::cout << "GPU time:" << (double)(end2 - end1) / CLOCKS_PER_SEC << std::endl;
     ////////////////get day data/////////////////////
@@ -97,23 +102,23 @@ int main(void)
 
     ////////////////////////get day gpp//////////////////////////////
 
-    std::cout << "begin DayGppDeque" << std::endl;
+    // std::cout << "begin DayGppDeque" << std::endl;
 
-    std::deque<double *> *DayGppDeque = new std::deque<double *>;
+    // std::deque<double *> *DayGppDeque = new std::deque<double *>;
 
-    GetDayData *ModelGetDayGpp = new GetDayData();
-    ModelGetDayGpp->Init(OutLaiInputDeque, SpatiotemporalDeque);
-    ModelGetDayGpp->Inneed();
-    ModelGetDayGpp->GetDayDataGPU(GppDeque3h, OutLaiInputDeque, SpatiotemporalDeque, DayGppDeque);
-    ModelGetDayGpp->Release();
+    // GetDayData *ModelGetDayGpp = new GetDayData();
+    // ModelGetDayGpp->Init(OutLaiInputDeque, SpatiotemporalDeque);
+    // ModelGetDayGpp->Inneed();
+    // ModelGetDayGpp->GetDayDataGPU(GppDeque3h, OutLaiInputDeque, SpatiotemporalDeque, DayGppDeque);
+    // ModelGetDayGpp->Release();
 
-    std::cout << "end DayGppDeque" << std::endl;
+    // std::cout << "end DayGppDeque" << std::endl;
 
-    const char *file2 = "../dataGdals/C3GppDay2007";
-    DataSet_Write *DatasetC3A = new DataSet_Write();
-    DatasetC3A->ResultToTif(file2, OutLaiInputDeque, DayGppDeque);
-    clock_t end3 = clock();
-    std::cout << "write time:" << (double)(end3 - end2) / CLOCKS_PER_SEC << std::endl;
+    // const char *file2 = "../../dataGdals/C3GppDay2007";
+    // DataSet_Write *DatasetC3A = new DataSet_Write();
+    // DatasetC3A->ResultToTif(file2, OutLaiInputDeque, DayGppDeque);
+    // clock_t end3 = clock();
+    // std::cout << "write time:" << (double)(end3 - end2) / CLOCKS_PER_SEC << std::endl;
     /*
     //////////////get year data/////////////////////
     std::cout << "begin GetYearDeque" << std::endl;

@@ -76,14 +76,22 @@ __global__ void rad_transfer(const double *LAI, const double *kb, const double *
     betad[i] = (beta_p_d * (1 - pow(taod_p, 2))) / (1 - pow(beta_p_d, 2) * pow(taod_p, 2));
 }
 
-__global__ void rad_partition(const double *Rad, const double *miukb,
+__global__ void rad_partition(const double *Rad, const double *miukb, double *Rad_last,
                               double *Rad_direct, double *Rad_diffuse)
 {
     int i = blockDim.x * blockIdx.x + threadIdx.x;
 
+    double Rad_Temp = Rad[i] - Rad_last[i];
+    Rad_last[i] = Rad[i];
+    
+    if (Rad_Temp < 0)
+    {
+        Rad_Temp = Rad[i];
+    }
+
     // Partitioning to directand diffuse radiation
     double S0 = 1367 * miukb[i];
-    double AT = Rad[i] / S0;
+    double AT = Rad_Temp / S0;
     double As = 0.25; // As: fraction of extraterrestrial radiation S0 on overcast days.
     double Bs = 0.5;  // As + Bs: fraction of extraterrestrial radiation S0 on clear days
     if (AT > 0.75)
@@ -98,15 +106,15 @@ __global__ void rad_partition(const double *Rad, const double *miukb,
     double ATc = max(AT, As + Bs);
     double lam = (double)(6.0 / 7.0);  // lam: when sky is clear that a fraction lam of AT is direct.
     double ATb = lam * ATc * (1 - Cf); // ATb: direct radiation fraction.
-    if (Rad[i] == 0)
+    if (Rad_Temp == 0)
     {
         Rad_direct[i] = 0;
         Rad_diffuse[i] = 0;
     }
     else
     {
-        Rad_direct[i] = (double)(ATb / AT) * Rad[i];
-        Rad_diffuse[i] = Rad[i] - Rad_direct[i];
+        Rad_direct[i] = (double)(ATb / AT) * Rad_Temp;
+        Rad_diffuse[i] = Rad_Temp - Rad_direct[i];
     }
 }
 
@@ -388,7 +396,7 @@ __global__ void PSN_C4(const double *VPD, const double *PPFD, const double *Vcma
 }
 
 __global__ void inputData(const double *Lon, const double *Lat, const double *Temp,
-                          const double *Rad, const double *SH, const double *Pressure, const double *LAI,
+                          const double *Rad, const double *dewpoint, const double *LAI,
                           double *VPD, double *RH, double *Vcmax, double *Jmax)
 {
     int i = blockDim.x * blockIdx.x + threadIdx.x;
@@ -400,8 +408,8 @@ __global__ void inputData(const double *Lon, const double *Lat, const double *Te
     double EaJ = 43540; // J.mol - 1  (CLM4.5)
 
     double es = 0.61078 * exp((17.27 * Temp[i]) / (Temp[i] + 237.3));
-    double ea = 1.6077 * SH[i] * Pressure[i] * 0.001;
-    VPD[i] = es - ea;
+    double ea = 0.61078 * exp((17.27 * dewpoint[i]) / (dewpoint[i] + 237.3));
+    VPD[i] = (es - ea)*1000;
     if (VPD[i] < 0)
     {
         VPD[i] = 0;
@@ -423,11 +431,6 @@ __global__ void inputData(const double *Lon, const double *Lat, const double *Te
     // Calculate Jmax for Aj based on Jmax25 and leaf temperature
     double T_Jmax = exp(EaJ * ((Temp[i] + 273.15) - 298) / (298 * Rgas * (Temp[i] + 273.15)));
     Jmax[i] = Jmax25 * T_Jmax;
-
-    /* Vcmax_sun = Vcmax
-         Vcmax_shade = Vcmax
-         Jmax_sun = Jmax
-         Jmax_shade = Jmax*/
 }
 
 __global__ void inputLai(const double *p0, const double *p1, const double *p2,
@@ -478,10 +481,10 @@ extern "C" void inputLai_C(int blocksPerGrid, int threadsPerBlock, const double 
 }
 
 extern "C" void inputData_C(int blocksPerGrid, int threadsPerBlock, const double *Lon, const double *Lat, const double *Temp,
-                            const double *Rad, const double *SH, const double *Pressure, const double *LAI,
+                            const double *Rad, const double *dewpoint, const double *LAI,
                             double *VPD, double *RH, double *Vcmax, double *Jmax)
 {
-    inputData<<<blocksPerGrid, threadsPerBlock>>>(Lon, Lat, Temp, Rad, SH, Pressure,
+    inputData<<<blocksPerGrid, threadsPerBlock>>>(Lon, Lat, Temp, Rad, dewpoint,
                                                   LAI, VPD, RH, Vcmax, Jmax);
 }
 
@@ -497,10 +500,10 @@ extern "C" void rad_transfer_C(int blocksPerGrid, int threadsPerBlock, const dou
     rad_transfer<<<blocksPerGrid, threadsPerBlock>>>(LAI, kb, G, taob, betab, taod, betad);
 }
 
-extern "C" void rad_partition_C(int blocksPerGrid, int threadsPerBlock, const double *Rad, const double *miukb,
+extern "C" void rad_partition_C(int blocksPerGrid, int threadsPerBlock, const double *Rad, const double *miukb,double *Rad_last,
                                 double *Rad_direct, double *Rad_diffuse)
 {
-    rad_partition<<<blocksPerGrid, threadsPerBlock>>>(Rad, miukb, Rad_direct, Rad_diffuse);
+    rad_partition<<<blocksPerGrid, threadsPerBlock>>>(Rad, miukb, Rad_last, Rad_direct, Rad_diffuse);
 }
 
 extern "C" void twoleaf_C(int blocksPerGrid, int threadsPerBlock, const double *LAI, const double *Rad_direct, const double *Rad_diffuse,
